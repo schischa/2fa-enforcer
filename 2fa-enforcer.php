@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: 2FA Enforcer
- * Description: Enforces Two-Factor Authentication for administrator users. Requires the official Two-Factor plugin.
- * Version: 1.0.0
+ * Description: Enforces Two-Factor Authentication for admin-level users (those with the manage_options capability). Requires the official Two-Factor plugin.
+ * Version: 1.0.1
  * Author: Marc Chiroiu
  * License: GPL2+
  */
@@ -16,8 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 add_action( 'admin_init', function() {
 
-    // Use is_plugin_active() only if the function exists (wp-admin only)
-    if ( function_exists('is_plugin_active') && is_plugin_active( 'two-factor/two-factor.php' ) ) {
+    if ( function_exists( 'is_plugin_active' ) && is_plugin_active( 'two-factor/two-factor.php' ) ) {
         return;
     }
 
@@ -31,21 +30,23 @@ add_action( 'admin_init', function() {
 });
 
 /**
- * Enforce 2FA for administrators.
+ * Enforce 2FA for admin-level users (capability-based).
  */
 add_filter( 'authenticate', function( $user, $username ) {
 
+    // If previous authentication errors exist, stop here.
     if ( is_wp_error( $user ) ) {
         return $user;
     }
 
-    // Check if Two-Factor plugin is available
+    // Ensure Two-Factor plugin classes are available.
     if ( ! class_exists( 'Two_Factor_Core' ) ) {
         return $user;
     }
 
-    // Enforce only for administrator users
-    if ( user_can( $user, 'administrator' ) ) {
+    // Enforce 2FA for users with admin-level capabilities.
+    // 'manage_options' is a capability only administrators have in standard WP setups.
+    if ( user_can( $user, 'manage_options' ) ) {
 
         $enabled = Two_Factor_Core::is_user_using_two_factor( $user->ID );
 
